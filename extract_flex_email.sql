@@ -1,6 +1,7 @@
 select 
 	ticket_id,
 	to_char(local_date_created::date,'mm/dd/yyyy') as local_date_created ,
+--	channel,
 	channel2 as channel,
 	assignee_id,
 	email_address,
@@ -17,6 +18,7 @@ from (
 		distinct 
 		ticket_id::varchar,
 		local_date_created,
+--		channel,
 		channel2,
 		assignee_id,
 		email_address,
@@ -29,11 +31,12 @@ from (
 		local_date_created,
 		date_updated,
 		date_updated - local_date_created as recent_,
-		max(date_updated - local_date_created) over (partition by ticket_id) as max_recent, 
+		min(date_updated - local_date_created) over (partition by ticket_id) as min_recent, 
 		_id as assignee_id,
 		agent_email as email_address,
 		agent_name,
 		frt_calendar,
+--		zen_tickets.channel,
 		zendesk_email_tickets.channel as channel2
 	from  
 		zendesk_email_tickets
@@ -43,12 +46,13 @@ from (
 		(select distinct ticket_id as _id_, reply_time_calendar_minutes as frt_calendar from zendesk_email_metrics) zen_tickets on _id_::varchar = ticket_id::varchar 
 	where 
 		client_account = 'urbanstems'
+	--	and ticket_id = '583579'
 		and (status = 'closed' or status = 'solved')
 		and zendesk_email_tickets.channel = 'email'
 	order by date_updated 
 	) b
 	where 
-		recent_ = max_recent
+		recent_ = min_recent
 		and agent_name is not null) raw
 order by 
 	local_date_created::date desc, agent_name 
