@@ -26,7 +26,7 @@ from (
 		local_date_created,
 		date_updated,
 		date_updated - local_date_created as recent_,
-		max(date_updated - local_date_created) over (partition by ticket_id) as max_recent, 
+		min(date_updated - local_date_created) over (partition by ticket_id) as min_recent, 
 		_id as assignee_id,
 		agent_email as email_address,
 		agent_name,
@@ -40,12 +40,13 @@ from (
 		(select frt_calendar, channel,  ticket_id as _id_, agent_name as name_ from d_zendesk_kpi_summary) zen_tickets on _id_::varchar = ticket_id::varchar and name_ = zen_tickets.name_
 	where 
 		client_account = 'urbanstems'
+	--	and ticket_id = '583579'
 		and (status = 'closed' or status = 'solved')
 		and zendesk_email_tickets.channel = 'email'
 	order by date_updated 
 	) b
 	where 
-		recent_ = max_recent
+		recent_ = min_recent
 		and agent_name is not null 
 		and local_date_created >= '2022-01-01') raw
 order by local_date_created::date desc, agent_name 
